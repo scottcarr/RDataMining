@@ -1,9 +1,9 @@
-#see http://cran-logs.rstudio.com/
 library("R.utils");
 library("wordcloud");
 LOGDIR="~/RDataMining/rstudioLogs/logs" # this directory should exist
 
 getMissingLogs <- function() {
+    #see http://cran-logs.rstudio.com/
     setwd(LOGDIR)
 
     # Here's an easy way to get all the URLs in R
@@ -49,7 +49,7 @@ countPackages <- function() {
             counts <- mergeTables(counts, t)
         }
     }
-    counts <- countPackages()
+    write.csv(counts, file="../counts.csv")
     sort(counts, decreasing=TRUE)
 }
 
@@ -58,16 +58,31 @@ mergeTables <- function(a, b) {
     c(a[!(names(a) %in% n)], b[!(names(b) %in% n)], a[n] + b[n])
 }
 
-analyze <- function() {
-    counts <- countPackages()
-    wordcloud(names(counts), margin(counts,1), max.words=100)
+
+plotResults <- function() {
+    jpeg("wordcloud.jpg")
+    d <- read.csv("countsSorted.csv")
+    #d <- d[order(d[,2]),]
+    wordcloud(d[["X.1"]], d[["x"]], max.words=100)
+    dev.off()
+}
+
+hbarPlot <- function() {
+    jpeg("hbar.jpg")
+    d <- read.csv("countsSorted.csv")
+    par(las=2) # make label text perpendicular to axis
+    range <- 25:1
+    barplot(d[range, 3], horiz=TRUE, names.arg=d[range, 2], cex.names=0.7)
+    dev.off()
 }
 
 run <- function() {
 
     setwd("/Users/scott/RDataMining/rstudioLogs")
     source("rstudioLogs.r")
-    analyze()
+    #countPackages()
+    #plotResults()
+    hbarPlot()
 }
 
 
