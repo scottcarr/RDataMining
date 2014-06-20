@@ -1,5 +1,5 @@
 PKGDIR = "/Volumes/HFS/cran/cran/src/contrib/" #an existing dir with the packages
-SRCDIR = "/Volumes/HFS/untared/"
+EXDIR = "/Volumes/HFS/untared/"
 
 unzipTopN <- function(inFile, N) {
     df <- read.csv(inFile, row.names=1)
@@ -7,7 +7,7 @@ unzipTopN <- function(inFile, N) {
     for (i in 1:N) {
         tarball <- findPackageTarBall(topN[i])
         print(paste0("Untaring: ", tarball)) 
-        untar(tarball, compressed="gzip", tar="/usr/bin/tar")
+        untar(tarball, compressed="gzip", tar="/usr/bin/tar", exdir=EXDIR)
     }
 }
 
@@ -29,3 +29,5 @@ run2 <- function() {
     source("packageMining.r")
     unzipTopN("downloads.csv", 10)
 }
+
+unzipTopN("downloads.csv", 10)
