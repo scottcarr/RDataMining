@@ -1,9 +1,14 @@
 PKGDIR = "/Volumes/HFS/cran/cran/src/contrib/" #an existing dir with the packages
 EXDIR = "/Volumes/HFS/untared/"
+DLCSV = "downloads.csv" 
 
-unzipTopN <- function(inFile, N) {
+getTopN <- function(inFile, N) {
     df <- read.csv(inFile, row.names=1)
     topN <- rownames(df)[1:N]
+}
+
+unzipTopN <- function(inFile, N) {
+    topN <- getTopN(inFile,N)
     for (i in 1:N) {
         tarball <- findPackageTarBall(topN[i])
         print(paste0("Untaring: ", tarball)) 
@@ -27,7 +32,7 @@ findPackageTarBall <- function(packageName) {
 
 run2 <- function() {
     source("packageMining.r")
-    unzipTopN("downloads.csv", 10)
+    unzipTopN(DLCSV, 10)
 }
 
-unzipTopN("downloads.csv", 10)
+#unzipTopN("downloads.csv", 10)

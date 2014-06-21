@@ -1,26 +1,44 @@
+source("unZip.R")
+
 cloc <- function(file) {
-    nHeader <- 9
+    nHeader <- 4
     nFooter <- 3
-    output <- system(paste0("cloc ", file), intern=TRUE)
-    importantRows <- output[seq(nHeader,length(output)-nFooter)]
-    splits <- Map(function(x){strsplit(x, "\\s\\s+")}, importantRows)
-    langs <- Map(function(x){x[[1]][1]}, splits)
-    files <- Map(function(x){x[[1]][2]}, splits)
-    blank <- Map(function(x){x[[1]][3]}, splits)
-    comment <- Map(function(x){x[[1]][4]}, splits)
-    code <- Map(function(x){x[[1]][5]}, splits)
-    langs <- unlist(langs)
-    names(files) <- langs
-    names(blank) <- langs
-    names(code) <- langs
-    names(comment) <- langs
-    m <- cbind(files, blank, comment, code)
-    df <- data.frame(m)
+    output <- system(paste0("cloc --force-lang=R,r --csv ", file), intern=TRUE)
+    output <- output[-(1:nHeader)]
+    con <- textConnection(output)
+    d <- read.csv(con)
+    d <- d[-length(d)] # the lost column is some weird string
+    languages <- d[["language"]]
+    #print(languages)
+    df <- data.frame(t(as.numeric(d[["code"]])), basename(file))
+    colnames(df) <- c(as.character(languages), "package")
+    #row.names(df) <- basename(file)
     return(df)
 }
 
-test <- function() {
-    cloc("/Volumes/HFS/untared/Rcpp")
+clocTopN <- function() {
+    topN <- getTopN(DLCSV, 5)
+    files <- paste0(EXDIR, topN)
+    clocs <- Map(cloc, files)
+    merged <- Reduce(function(x, y){merge(x, y, all=TRUE)}, clocs)
+    return (merged)
 }
 
-#test()
+calcStats <- function(merged) {
+    cns <- colnames(merged)
+    keeps <- cns[which(cns != "package")]
+    print(keeps)
+    m <- data.frame(merged, total=rowSums(merged[,keeps], na.rm=TRUE))
+    return (m)
+}
+
+test1 <- function() {
+    c <- cloc("/Volumes/HFS/untared/Rcpp")
+}
+
+test2 <- function() {
+    m <- clocTopN()
+    calcStats(m)
+}
+
+#test2()
