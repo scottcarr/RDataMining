@@ -1,6 +1,8 @@
 #library(compiler)
 source("~/r-release-branch/R/src/library/compiler/R/cmp.r")
 
+varBindings <- list()
+
 append.list <- function(l, item) {
     l[[length(l)+1]] = item
     l
@@ -17,6 +19,15 @@ pop <- function(stack) {
         list(stack=stack, item=item)
     }
 
+}
+
+peek <- function(stack) {
+    if (length(stack) == 0) {
+        NULL
+    } else {
+        last <- length(stack)
+        stack[[last]]
+    }
 }
 
 popN <- function(stack, N) {
@@ -48,9 +59,11 @@ myEval <- function(dsm) {
         #print(typeof(bytes[[i]]))
         type <- typeof(bytes[[i]])
         if (type == "symbol") {
+            print(stack)
             op <- bytes[[i]]
             #print(op)
             if (op == "RETURN.OP") {
+                print("RETURN.OP")
                 #s <- pop(stack)
                 #return(s$item)
                 break
@@ -110,7 +123,13 @@ evalOp <- function(op, stack, symbols) {
             arg <- s$item
             symb <- symbols[[arg+1]]
             print(paste0("GETFUN ", symb))
-            push(stack, get(as.character(symb)))
+            print(varBindings)
+            binding <- varBindings[[as.character(symb)]]
+            if (is.null(binding)) {
+                push(stack, get(as.character(symb)))
+            } else {
+                push(stack, binding)
+            }
         },
         "CALL.OP" = {
             s = popN(stack,3)
@@ -123,17 +142,96 @@ evalOp <- function(op, stack, symbols) {
             print(args)
             print(call)
             push(stack, do.call(fun, args))
+        },
+        "MAKECLOSURE.OP" = {
+            s = pop(stack)
+            stack <- s$stack
+            arg <- s$item
+            clos <- symbols[[arg+1]]
+            #formalArgs <- clos[[1]]
+            #byteCode <- clos[[2]]
+            func <- as.function(unlist(clos))
+            print("MAKECLOSURE.OP")
+            print(func)
+            push(stack, func)
+        },
+        "SETVAR.OP" = {
+            s = pop(stack)
+            stack <- s$stack
+            arg <- s$item
+            symb <- symbols[[arg+1]]
+            print("SETVAR.OP")
+            print(symb)
+            print("<-")
+            print(peek(stack))
+            varBindings[[as.character(symb)]] <<- peek(stack)
+            print(varBindings)
+            stack
+        },
+        "INVISIBLE.OP" = {
+            # what does this do?
+            print("INVISIBLE.OP")
+            stack
+        },
+        "POP.OP" = {
+            print("POP.OP")
+            pop(stack)$stack
         }
-
     )
 }
 
 
+test <- function(e, optimize=0) {
+    bc <- compile(e, options=list(optimize=optimize))
+    d <- disassemble(bc)
+    res1 <- myEval(d)
+    res2 <- eval(bc)
+    print("---")
+    if (!identical(res1, res2)) {
+        print("test failed.")
+        print("R")
+        print(res2)
+        print("mine")
+        print(res1)
+        FALSE
+    } else {
+        print("test passed")
+        TRUE
+    }
+}
 
-bc <- compile(quote(1+2), options=list(optimize=0))
-#bc <- compile(quote(1+2))
-d <- disassemble(bc)
-res <- myEval(d)
-print("---")
-print(res)
+regressionTests <- function() {
+    es <- c (
+        quote(1+2),
+        quote(c(1,2,3)),
+        quote(
+            { 
+                x <- function(a,b) { return (a + b) }
+                x(1,2) 
+            }
+        )
+    )
+    for (i in 1:length(es)) {
+        if (!test(es[i])) {
+            print("test failed:")
+            print("optimize=0")
+            print(es[i])
+            return (FALSE)
+        }
+    }
+}
+#e <- quote(1+2)
+#e <- quote(c(1,2,3))
+#e <- quote(
+#    { x <- function(a,b) { return (a + b) }
+#    x(1,2) })
+#e <- quote(
+#    x <- function(a,b) { return (a + b) })
+#bc <- compile(e, options=list(optimize=3))
+#d <- disassemble(bc)
+#print(d[[1]])
+#print(eval(bc))
+#test(e, optimize=0)
+#test(e, optimize=3)
+regressionTests()
 
